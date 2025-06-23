@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>najlepszego z okazji dnia taty Kamil2137</title>
+    <style>
+        body {
+            background-color: #000000;
+            color: #00FF00;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 16px;
+            margin: 0;
+            padding: 10px;
+            overflow: hidden;
+            caret-color: transparent;
+        }
+        #terminal {
+            width: 100%;
+            height: 100vh;
+            overflow-y: auto;
+            box-sizing: border-box;
+        }
+        #output {
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .prompt-line {
+            display: flex;
+            align-items: center;
+        }
+        .prompt-symbol {
+            margin-right: 5px;
+        }
+        #input-command {
+            outline: none;
+            border: none;
+            background: transparent;
+            color: #00FF00;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 16px;
+            flex-grow: 1;
+        }
+        .cursor {
+            display: inline-block;
+            background-color: #00FF00;
+            width: 9px;
+            height: 18px;
+            animation: blink 1s step-end infinite;
+            margin-left: 1px;
+            vertical-align: bottom;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+        #game-board {
+            white-space: pre;
+            line-height: 1.1;
+            font-size: 18px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="terminal">
+        <div id="output"></div>
+        <div class="prompt-line">
+            <span class="prompt-symbol">K_2137></span>
+            <span id="current-typed-command"></span>
+            <span class="cursor"></span>
+        </div>
+    </div>
+
+    <script>
+        const outputDiv = document.getElementById('output');
+        const currentTypedCommandSpan = document.getElementById('current-typed-command');
+        const terminalDiv = document.getElementById('terminal');
+        const gameBoardDiv = document.createElement('div');
+        gameBoardDiv.id = 'game-board';
+
+        let currentCommand = "";
+        let commandHistory = [];
+        let historyIndex = -1;
+        let typewriterSpeed = 10;
+        let activeGame = null;
+        let gameLoopIntervalId = null;
+
+        function printLine(text, isCommandOutput = false) {
+            const line = document.createElement('div');
+            line.textContent = text;
+            if (isCommandOutput) {
+                outputDiv.appendChild(document.createTextNode('\n'));
+            }
+            outputDiv.appendChild(line);
+            scrollToBottom();
+        }
+
+        async function typeLine(text, speed = typewriterSpeed) {
+            const line = document.createElement('div');
+            outputDiv.appendChild(line);
+            for (let i = 0; i < text.length; i++) {
+                line.textContent += text[i];
+                scrollToBottom();
+                await new Promise(resolve => setTimeout(resolve, speed));
+            }
+            return Promise.resolve();
+        }
+
+        async function typeCommandOutput(text, speed = typewriterSpeed) {
+            outputDiv.appendChild(document.createTextNode('\n'));
+            await typeLine(text, speed);
+            outputDiv.appendChild(document.createTextNode('\n'));
+            scrollToBottom();
+            return Promise.resolve();
+        }
+
+        function scrollToBottom() {
+            terminalDiv.scrollTop = terminalDiv.scrollHeight;
+        }
+
+        function clearScreen() {
+            outputDiv.innerHTML = "";
+            if (gameBoardDiv.parentElement === outputDiv) {
+                gameBoardDiv.remove();
+            }
+        }
+
+        function processCommand(command) {
+            printLine(`K_2137>${command}`);
+            commandHistory.push(command);
+            historyIndex = commandHistory.length;
+
+            const parts = command.toLowerCase().trim().split(" ");
+            const cmd = parts[0];
+            const args = parts.slice(1);
+
+            if (activeGame) {
+                typeCommandOutput("A game is currently running. Quit the game (usually ESC) to use terminal commands.");
+                currentCommand = "";
+                currentTypedCommandSpan.textContent = "";
+                return;
+            }
+
+            switch (cmd) {
+                case 'help':
+                    if (args[0] === 'showhidden') {
+                        typeCommandOutput(
+                            "Standard Commands:\n" +
+                            "  help                  - Show this help message\n" +
+                            "  run snake             - Start the ASCII Snake game\n" +
+                            "  run pong              - Start ASCII Pong (Player vs AI)\n" +
+                            "  run pong2p            - Start ASCII Pong (Player vs Player)\n" +
+                            "  run pacman            - Start ASCII Pac-Man game\n" +
+                            "  run bomber            - Start the ASCII Bomber game (Conceptual)\n" +
+                            "  clear                 - Clear the terminal screen\n" +
+                            "  exit                  - Exit the Kamil2137 Emulator (simulated)\n\n" +
+                            "Hidden Commands (shhh!):\n" +
+                            "  run tatakasa\n" +
+                            "  run tatanajlepszego\n" +
+                            "  run tatalove\n" +
+                            "  run gei"
+                        );
+                    } else {
+                        typeCommandOutput(
+                            "Available commands:\n" +
+                            "  help                  - Show this help message\n" +
+                            "  help showhidden       - Reveal hidden commands\n" +
+                            "  run snake             - Start the ASCII Snake game\n" +
+                            "  run pong              - Start ASCII Pong (Player vs AI)\n" +
+                            "  run pong2p            - Start ASCII Pong (Player vs Player)\n" +
+                            "  run pacman            - Start ASCII Pac-Man game\n" +
+                            "  run bomber            - Start the ASCII Bomber game (Conceptual)\n" +
+                            "  clear                 - Clear the terminal screen\n" +
+                            "  exit                  - Exit the Kamil2137 Emulator (simulated)"
+                        );
+                    }
+                    break;
+                case 'run':
+                    const program = args[0];
+                    switch (program) {
+                        case 'snake': initiateGameStart('snake', startGameSnake); break;
+                        case 'pong': initiateGameStart('pong', startGamePong); break;
+                        case 'pong2p': initiateGameStart('pong2p', startGamePong2P); break;
+                        case 'pacman': initiateGameStart('pacman', startGamePacman); break;
+                        case 'bomber': initiateGameStart('bomber', startGameBomber_Placeholder); break;
+                        case 'tatakasa': typeCommandOutput("Tata daj kase"); break;
+                        case 'tatanajlepszego': typeCommandOutput("Wszystkiego najlepszego z okazji Dnia Taty!"); break;
+                        case 'tatalove': typeCommandOutput("Kochany Tata <3"); break;
+                        case 'gei': typeCommandOutput("Kamil gej"); break;
+                        default: typeCommandOutput(`'${program || ''}' is not a recognized program to run.`); break;
+                    }
+                    break;
+                case 'clear': clearScreen(); break;
+                case 'exit':
+                    typeCommandOutput("Shutting down Kamil2137 Emulator...\nGoodbye!");
+                    document.removeEventListener('keydown', handleKeyDown);
+                    currentTypedCommandSpan.parentElement.style.display = 'none';
+                    break;
+                case '': break;
+                default: typeCommandOutput(`'${command}' is not recognized as an internal or external command, operable program or batch file.`); break;
+            }
+            currentCommand = "";
+            currentTypedCommandSpan.textContent = "";
+        }
+
+        function handleKeyDown(e) {
+            if (activeGame) {
+                if (activeGame === 'snake' && typeof handleSnakeInput === 'function') handleSnakeInput(e);
+                else if (activeGame === 'pong' && typeof handlePongInput === 'function') handlePongInput(e);
+                else if (activeGame === 'pong2p' && typeof handlePong2PInput === 'function') handlePong2PInput(e);
+                else if (activeGame === 'pacman' && typeof handlePacmanInput === 'function') handlePacmanInput(e);
+                return;
+            }
+
+            if (!(e.key === 'F5' || e.key === 'F11' || e.key === 'F12' || (e.ctrlKey && e.key.toLowerCase() === 'r') || (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'i'))) {
+                 e.preventDefault();
+            }
+
+            if (e.key === "Enter") processCommand(currentCommand);
+            else if (e.key === "Backspace") currentCommand = currentCommand.slice(0, -1);
+            else if (e.key === "ArrowUp") {
+                if (commandHistory.length > 0) {
+                    if (historyIndex > 0) historyIndex--;
+                    currentCommand = commandHistory[historyIndex] || "";
+                }
+            } else if (e.key === "ArrowDown") {
+                if (commandHistory.length > 0) {
+                    if (historyIndex < commandHistory.length - 1) {
+                        historyIndex++;
+                        currentCommand = commandHistory[historyIndex];
+                    } else {
+                        historyIndex = commandHistory.length;
+                        currentCommand = "";
+                    }
+                }
+            } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) currentCommand += e.key;
+            currentTypedCommandSpan.textContent = currentCommand;
+        }
+
+        function initiateGameStart(gameName, gameSpecificStartFunction) {
+            activeGame = gameName;
+            clearScreen();
+            outputDiv.appendChild(gameBoardDiv);
+            gameBoardDiv.textContent = "";
+            currentTypedCommandSpan.parentElement.style.display = 'none';
+            gameSpecificStartFunction();
+        }
+
+        function concludeGame(gameNameForExit, exitMessage, scoreDetails = "") {
+            if (activeGame !== gameNameForExit && gameNameForExit !== null) {
+                if(activeGame !== null) return;
+            }
+            const wasGameActive = activeGame === gameNameForExit;
+            activeGame = null;
+            if (gameLoopIntervalId) {
+                clearInterval(gameLoopIntervalId);
+                gameLoopIntervalId = null;
+            }
+            let fullMessage = exitMessage;
+            if (scoreDetails) fullMessage += `\n${scoreDetails}`;
+            fullMessage += `\nPress any key to return to emulator...`;
+            if (!gameBoardDiv.parentElement) outputDiv.appendChild(gameBoardDiv);
+
+            const currentBoardContent = gameBoardDiv.textContent;
+             if (currentBoardContent && !currentBoardContent.includes("Press any key to return to emulator...")) {
+                 gameBoardDiv.textContent += `\n${fullMessage}`;
+            } else {
+                 gameBoardDiv.textContent = fullMessage;
+            }
+            scrollToBottom();
+
+            const returnToTerminalHandler = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (gameBoardDiv.parentElement) gameBoardDiv.remove();
+                currentTypedCommandSpan.parentElement.style.display = 'flex';
+                if(wasGameActive) printLine(`\n--- ${gameNameForExit} session ended ---`);
+                document.removeEventListener('keydown', returnToTerminalHandler, true);
+                currentCommand = "";
+                currentTypedCommandSpan.textContent = "";
+                scrollToBottom();
+            };
+            document.addEventListener('keydown', returnToTerminalHandler, true);
+        }
+
+        let snake_snake, snake_food, snake_direction, snake_score, snake_gameSpeed;
+        const snake_boardWidth = 30, snake_boardHeight = 15, snake_initialSpeed = 250, snake_speedIncrease = 10;
+        function initSnakeGameVars() {
+            snake_snake = [{ x: Math.floor(snake_boardWidth / 2), y: Math.floor(snake_boardHeight / 2) }];
+            placeSnakeFood();
+            snake_direction = 'RIGHT';
+            snake_score = 0;
+            snake_gameSpeed = snake_initialSpeed;
+        }
+        function placeSnakeFood() {
+            while (true) {
+                snake_food = { x: Math.floor(Math.random() * snake_boardWidth), y: Math.floor(Math.random() * snake_boardHeight) };
+                if (!snake_snake.some(seg => seg.x === snake_food.x && seg.y === snake_food.y)) break;
+            }
+        }
+        function drawSnakeGameBoard() {
+            if (activeGame !== 'snake') return;
+            let board = `Score: ${snake_score}\n+${"-".repeat(snake_boardWidth)}+\n`;
+            for (let y = 0; y < snake_boardHeight; y++) {
+                board += "|";
+                for (let x = 0; x < snake_boardWidth; x++) {
+                    let char = ' ';
+                    if (snake_food.x === x && snake_food.y === y) char = '*';
+                    else {
+                        for (let i = 0; i < snake_snake.length; i++) {
+                            if (snake_snake[i].x === x && snake_snake[i].y === y) { char = (i === 0) ? 'O' : 'o'; break; }
+                        }
+                    }
+                    board += char;
+                }
+                board += "|\n";
+            }
+            board += `+${"-".repeat(snake_boardWidth)}+\n`;
+            gameBoardDiv.textContent = board;
+        }
+        function moveSnake() {
+            if (activeGame !== 'snake') return;
+            let head = { ...snake_snake[0] };
+            switch (snake_direction) {
+                case 'UP': head.y--; break;
+                case 'DOWN': head.y++; break;
+                case 'LEFT': head.x--; break;
+                case 'RIGHT': head.x++; break;
+            }
+            if (head.x < 0 || head.x >= snake_boardWidth || head.y < 0 || head.y >= snake_boardHeight || snake_snake.slice(1).some(seg => seg.x === head.x && seg.y === head.y)) {
+                gameOverSnake(false); return;
+            }
+            snake_snake.unshift(head);
+            if (head.x === snake_food.x && head.y === snake_food.y) {
+                snake_score += 10;
+                placeSnakeFood();
+                if (snake_gameSpeed > 50) snake_gameSpeed -= snake_speedIncrease;
+                if(gameLoopIntervalId) clearInterval(gameLoopIntervalId);
+                gameLoopIntervalId = setInterval(gameLoopSnake, snake_gameSpeed);
+            } else snake_snake.pop();
+        }
+        function gameLoopSnake() {
+            if (activeGame !== 'snake') { if(gameLoopIntervalId) clearInterval(gameLoopIntervalId); gameLoopIntervalId = null; return; }
+            moveSnake();
+            if (activeGame === 'snake') drawSnakeGameBoard();
+        }
+        function handleSnakeInput(e) {
+            if (activeGame !== 'snake') return; e.preventDefault();
+            const key = e.key.toUpperCase();
+            if ((key === 'ARROWUP' || key === 'W') && snake_direction !== 'DOWN') snake_direction = 'UP';
+            else if ((key === 'ARROWDOWN' || key === 'S') && snake_direction !== 'UP') snake_direction = 'DOWN';
+            else if ((key === 'ARROWLEFT' || key === 'A') && snake_direction !== 'RIGHT') snake_direction = 'LEFT';
+            else if ((key === 'ARROWRIGHT' || key === 'D') && snake_direction !== 'LEFT') snake_direction = 'RIGHT';
+            else if (key === 'ESCAPE') gameOverSnake(true);
+        }
+        function startGameSnake() {
+            typeLine("Starting Snake... Use Arrow Keys or WASD. Press ESC to quit.", 15).then(() => {
+                if (activeGame !== 'snake') return;
+                initSnakeGameVars(); drawSnakeGameBoard();
+                if (gameLoopIntervalId) clearInterval(gameLoopIntervalId);
+                gameLoopIntervalId = setInterval(gameLoopSnake, snake_gameSpeed);
+            });
+        }
+        function gameOverSnake(manualExit = false) {
+            if (activeGame !== 'snake') return;
+            if (!manualExit) drawSnakeGameBoard();
+            concludeGame('snake', manualExit ? "Game exited." : "GAME OVER!", `Final Score: ${snake_score}`);
+        }
+
+        let pong_ball, pong_paddle1Y, pong_paddle2Y, pong_score1, pong_score2;
+        const pong_boardWidth = 40, pong_boardHeight = 20, pong_paddleHeight = 4, pong_paddleOffset = 2, pong_baseSpeedMs = 80;
+        function initPongGameVars(isTwoPlayer = false) {
+            pong_paddle1Y = Math.floor(pong_boardHeight / 2 - pong_paddleHeight / 2);
+            pong_paddle2Y = Math.floor(pong_boardHeight / 2 - pong_paddleHeight / 2);
+            pong_score1 = 0; pong_score2 = 0;
+            resetPongBall();
+        }
+        function resetPongBall(servedToPlayer1 = true) {
+            pong_ball = { x: Math.floor(pong_boardWidth / 2), y: Math.floor(Math.random() * (pong_boardHeight - 2)) + 1, vx: servedToPlayer1 ? -0.7 : 0.7, vy: (Math.random() * 0.4 - 0.2) };
+            if (Math.abs(pong_ball.vy) < 0.1) pong_ball.vy = pong_ball.vy >= 0 ? 0.1 : -0.1;
+        }
+        function drawPongGameBoard(isTwoPlayer = false) {
+            if (activeGame !== 'pong' && activeGame !== 'pong2p') return;
+            let player2Name = isTwoPlayer ? "Player 2" : "AI";
+            let board = `Player 1: ${pong_score1}  |  ${player2Name}: ${pong_score2}   (First to 5 wins)\n+${"-".repeat(pong_boardWidth)}+\n`;
+            for (let y = 0; y < pong_boardHeight; y++) {
+                board += "|";
+                for (let x = 0; x < pong_boardWidth; x++) {
+                    let char = ' ';
+                    if (x === pong_paddleOffset && y >= pong_paddle1Y && y < pong_paddle1Y + pong_paddleHeight) char = '█';
+                    else if (x === pong_boardWidth - 1 - pong_paddleOffset && y >= Math.floor(pong_paddle2Y) && y < Math.floor(pong_paddle2Y) + pong_paddleHeight) char = '█';
+                    else if (Math.round(pong_ball.x) === x && Math.round(pong_ball.y) === y) char = 'o';
+                    board += char;
+                }
+                board += "|\n";
+            }
+            board += `+${"-".repeat(pong_boardWidth)}+\n`;
+            gameBoardDiv.textContent = board;
+        }
+        function movePongBallAndAI() {
+            if (activeGame !== 'pong' && activeGame !== 'pong2p') return;
+            pong_ball.x += pong_ball.vx; pong_ball.y += pong_ball.vy;
+
+            if (pong_ball.y <= 0) { pong_ball.y = 0.1; pong_ball.vy *= -1; }
+            else if (pong_ball.y >= pong_boardHeight - 1) { pong_ball.y = pong_boardHeight - 1.1; pong_ball.vy *= -1; }
+
+            if (pong_ball.vx < 0 && Math.floor(pong_ball.x) <= pong_paddleOffset && pong_ball.x > pong_paddleOffset - Math.abs(pong_ball.vx)) {
+                if (pong_ball.y >= pong_paddle1Y && pong_ball.y < pong_paddle1Y + pong_paddleHeight) {
+                    pong_ball.vx *= -1.02; let deltaY = pong_ball.y - (pong_paddle1Y + pong_paddleHeight / 2); pong_ball.vy = deltaY * 0.15; pong_ball.x = pong_paddleOffset + 0.1;
+                }
+            }
+            if (pong_ball.vx > 0 && Math.ceil(pong_ball.x) >= pong_boardWidth - 1 - pong_paddleOffset && pong_ball.x < pong_boardWidth - 1 - pong_paddleOffset + Math.abs(pong_ball.vx)) {
+                if (pong_ball.y >= pong_paddle2Y && pong_ball.y < pong_paddle2Y + pong_paddleHeight) {
+                    pong_ball.vx *= -1.02; let deltaY = pong_ball.y - (pong_paddle2Y + pong_paddleHeight / 2); pong_ball.vy = deltaY * 0.15; pong_ball.x = pong_boardWidth - 1 - pong_paddleOffset - 0.1;
+                }
+            }
+            pong_ball.vx = Math.max(-1.2, Math.min(1.2, pong_ball.vx));
+            pong_ball.vy = Math.max(-0.8, Math.min(0.8, pong_ball.vy));
+
+            if (pong_ball.x < -1) { pong_score2++; resetPongBall(false); if (pong_score2 >= 5) { gameOverPong(false, activeGame === 'pong' ? "AI Wins!" : "Player 2 Wins!"); return;} }
+            else if (pong_ball.x > pong_boardWidth) { pong_score1++; resetPongBall(true); if (pong_score1 >= 5) { gameOverPong(false, "Player 1 Wins!"); return;} }
+
+            if (activeGame === 'pong') {
+                if (pong_ball.vx > 0) {
+                    let aiErrorFactor = 0.8;
+                    let targetY = pong_ball.y + pong_ball.vy * ((pong_boardWidth - 1 - pong_paddleOffset - pong_ball.x) / pong_ball.vx) * aiErrorFactor;
+                    const aiPaddleCenter = pong_paddle2Y + pong_paddleHeight / 2; const aiPaddleSpeed = 0.35;
+                    if (aiPaddleCenter < targetY - 0.5 && pong_paddle2Y + pong_paddleHeight < pong_boardHeight) pong_paddle2Y += aiPaddleSpeed;
+                    else if (aiPaddleCenter > targetY + 0.5 && pong_paddle2Y > 0) pong_paddle2Y -= aiPaddleSpeed;
+                    pong_paddle2Y = Math.max(0, Math.min(pong_boardHeight - pong_paddleHeight, pong_paddle2Y));
+                }
+            }
+        }
+        function gameLoopPong() {
+            if (activeGame !== 'pong' && activeGame !== 'pong2p') { if(gameLoopIntervalId) clearInterval(gameLoopIntervalId); gameLoopIntervalId = null; return; }
+            movePongBallAndAI();
+            if (activeGame === 'pong' || activeGame === 'pong2p') drawPongGameBoard(activeGame === 'pong2p');
+        }
+        function handlePongInput(e) {
+            if (activeGame !== 'pong') return; e.preventDefault();
+            const key = e.key.toUpperCase(); const paddleSpeed = 1.8;
+            if ((key === 'ARROWUP' || key === 'W') && pong_paddle1Y > 0) pong_paddle1Y = Math.max(0, pong_paddle1Y - paddleSpeed);
+            else if ((key === 'ARROWDOWN' || key === 'S') && pong_paddle1Y + pong_paddleHeight < pong_boardHeight) pong_paddle1Y = Math.min(pong_boardHeight - pong_paddleHeight, pong_paddle1Y + paddleSpeed);
+            else if (key === 'ESCAPE') gameOverPong(true);
+        }
+        function handlePong2PInput(e) {
+            if (activeGame !== 'pong2p') return; e.preventDefault();
+            const key = e.key.toUpperCase(); const paddleSpeed = 1.8;
+            if ((key === 'W') && pong_paddle1Y > 0) pong_paddle1Y = Math.max(0, pong_paddle1Y - paddleSpeed);
+            else if ((key === 'S') && pong_paddle1Y + pong_paddleHeight < pong_boardHeight) pong_paddle1Y = Math.min(pong_boardHeight - pong_paddleHeight, pong_paddle1Y + paddleSpeed);
+            if ((key === 'ARROWUP') && pong_paddle2Y > 0) pong_paddle2Y = Math.max(0, pong_paddle2Y - paddleSpeed);
+            else if ((key === 'ARROWDOWN') && pong_paddle2Y + pong_paddleHeight < pong_boardHeight) pong_paddle2Y = Math.min(pong_boardHeight - pong_paddleHeight, pong_paddle2Y + paddleSpeed);
+            else if (key === 'ESCAPE') gameOverPong(true);
+        }
+        function startGamePong() {
+            typeLine("Starting Pong (PvAI)... W/S or Arrow Up/Down. ESC to quit.", 15).then(() => {
+                if (activeGame !== 'pong') return; initPongGameVars(); drawPongGameBoard();
+                if (gameLoopIntervalId) clearInterval(gameLoopIntervalId); gameLoopIntervalId = setInterval(gameLoopPong, pong_baseSpeedMs);
+            });
+        }
+        function startGamePong2P() {
+            typeLine("Starting Pong (PvP)... P1: W/S, P2: Arrows. ESC to quit.", 15).then(() => {
+                if (activeGame !== 'pong2p') return; initPongGameVars(true); drawPongGameBoard(true);
+                if (gameLoopIntervalId) clearInterval(gameLoopIntervalId); gameLoopIntervalId = setInterval(gameLoopPong, pong_baseSpeedMs);
+            });
+        }
+        function gameOverPong(manualExit = false, winMessage = "") {
+            const currentGame = activeGame;
+            if (currentGame !== 'pong' && currentGame !== 'pong2p') return;
+            drawPongGameBoard(currentGame === 'pong2p');
+            concludeGame(currentGame, manualExit ? "Game exited." : (winMessage || "GAME OVER!"), `Final Score: P1 ${pong_score1} - ${currentGame === 'pong2p' ? 'P2' : 'AI'} ${pong_score2}`);
+        }
+
+        function startGameBomber_Placeholder() { typeLine("Conceptual Bomber game. Not implemented.", 15).then(() => { if (activeGame !== 'bomber') return; concludeGame('bomber', "Bomber Development Incomplete.", "No score available."); }); }
+
+
+        let pacman_player, pacman_ghosts, pacman_map, pacman_score, pacman_lives, pacman_dots, pacman_powerTimer;
+        const pacman_gameSpeed = 200, pacman_powerDuration = 50;
+        const pac_char = 'P', ghost_char = 'G', wall_char = '#', dot_char = '.', power_char = '*', empty_char = ' ';
+
+        function initPacmanGameVars() {
+            pacman_map = [
+                "#####################",
+                "#P.*.#...........#.*.#",
+                "#.###.###.#.###.###.#",
+                "#...................#",
+                "#.###.#.#####.#.###.#",
+                "#.....#...G...#.....#",
+                "#####.### # ###.#####",
+                "    #.#   G   #.#    ",
+                "#####.# ##### #.#####",
+                "      # G   G #      ",
+                "#####.# ##### #.#####",
+                "    #.#       #.#    ",
+                "#####.# ##### #.#####",
+                "#.........#.........#",
+                "#.###.###.#.###.###.#",
+                "#*..#.....P.....#..*#",
+                "###.#.#.#####.#.#.###",
+                "#...#.#...#...#.#...#",
+                "#.#####.###.#####.#",
+                "#*...............*#",
+                "#####################"
+            ];
+             let playerPosFound = 0;
+             pacman_ghosts = [];
+             pacman_dots = 0;
+
+            for (let r = 0; r < pacman_map.length; r++) {
+                for (let c = 0; c < pacman_map[r].length; c++) {
+                    if (pacman_map[r][c] === pac_char && playerPosFound < 2) {
+                        if (playerPosFound === 0) {
+                           pacman_player = { x: c, y: r, dx: 0, dy: 0 };
+                        }
+                         pacman_map[r] = pacman_map[r].substring(0,c) + empty_char + pacman_map[r].substring(c+1);
+                        playerPosFound++;
+                    } else if (pacman_map[r][c] === ghost_char) {
+                        pacman_ghosts.push({ x: c, y: r, dx: 0, dy: 0, frightened: false, lastTurnX: c, lastTurnY: r});
+                         pacman_map[r] = pacman_map[r].substring(0,c) + empty_char + pacman_map[r].substring(c+1);
+                    } else if (pacman_map[r][c] === dot_char || pacman_map[r][c] === power_char) {
+                        pacman_dots++;
+                    }
+                }
+            }
+             if (playerPosFound === 0) {
+                pacman_player = {x:1, y:1, dx:0, dy:0};
+             }
+
+            pacman_score = 0;
+            pacman_lives = 3;
+            pacman_powerTimer = 0;
+        }
+
+        function drawPacmanBoard() {
+            if (activeGame !== 'pacman') return;
+            let board = `Score: ${pacman_score}  Lives: ${pacman_lives}  Dots: ${pacman_dots} (ESC to Quit)\n`;
+            if (pacman_powerTimer > 0) board += `POWER MODE: ${pacman_powerTimer} \n`;
+
+            const displayMap = pacman_map.map(row => row.split(''));
+
+            displayMap[pacman_player.y][pacman_player.x] = pac_char;
+            pacman_ghosts.forEach(g => {
+                displayMap[g.y][g.x] = g.frightened ? 'g' : ghost_char;
+            });
+
+            board += displayMap.map(row => row.join('')).join('\n');
+            gameBoardDiv.textContent = board;
+        }
+
+        function canMovePacman(x, y) {
+            return y >= 0 && y < pacman_map.length && x >= 0 && x < pacman_map[y].length && pacman_map[y][x] !== wall_char;
+        }
+
+        function updatePacmanState() {
+            if (activeGame !== 'pacman') return;
+
+            let nextX = pacman_player.x + pacman_player.dx;
+            let nextY = pacman_player.y + pacman_player.dy;
+
+            if (canMovePacman(nextX, nextY)) {
+                pacman_player.x = nextX;
+                pacman_player.y = nextY;
+            } else if (canMovePacman(pacman_player.x, pacman_player.y + pacman_player.dy)){
+                pacman_player.y = pacman_player.y + pacman_player.dy;
+            } else if (canMovePacman(pacman_player.x + pacman_player.dx, pacman_player.y)){
+                 pacman_player.x = pacman_player.x + pacman_player.dx;
+            }
+
+            const currentCell = pacman_map[pacman_player.y][pacman_player.x];
+            if (currentCell === dot_char) {
+                pacman_score += 10;
+                pacman_dots--;
+                pacman_map[pacman_player.y] = pacman_map[pacman_player.y].substring(0, pacman_player.x) + empty_char + pacman_map[pacman_player.y].substring(pacman_player.x + 1);
+            } else if (currentCell === power_char) {
+                pacman_score += 50;
+                pacman_dots--;
+                pacman_powerTimer = pacman_powerDuration;
+                pacman_ghosts.forEach(g => g.frightened = true);
+                pacman_map[pacman_player.y] = pacman_map[pacman_player.y].substring(0, pacman_player.x) + empty_char + pacman_map[pacman_player.y].substring(pacman_player.x + 1);
+            }
+
+            if (pacman_powerTimer > 0) {
+                pacman_powerTimer--;
+                if (pacman_powerTimer === 0) {
+                    pacman_ghosts.forEach(g => g.frightened = false);
+                }
+            }
+
+            pacman_ghosts.forEach(g => {
+                let gx = g.x, gy = g.y;
+                let possibleMoves = [];
+                if (canMovePacman(gx + 1, gy) && !(g.dx === -1 && g.dy ===0)) possibleMoves.push({x:1, y:0});
+                if (canMovePacman(gx - 1, gy) && !(g.dx === 1 && g.dy ===0)) possibleMoves.push({x:-1, y:0});
+                if (canMovePacman(gx, gy + 1) && !(g.dx === 0 && g.dy ===-1)) possibleMoves.push({x:0, y:1});
+                if (canMovePacman(gx, gy - 1) && !(g.dx === 0 && g.dy ===1)) possibleMoves.push({x:0, y:-1});
+
+                if (possibleMoves.length > 0) {
+                    let bestMove = null;
+                    if(possibleMoves.length > 2 || (g.x === g.lastTurnX && g.y === g.lastTurnY)){
+                         g.lastTurnX = g.x;
+                         g.lastTurnY = g.y;
+                        if(g.frightened){
+                            let maxDist = -1;
+                            possibleMoves.forEach(m => {
+                                let dist = Math.abs(gx+m.x - pacman_player.x) + Math.abs(gy+m.y - pacman_player.y);
+                                if(dist > maxDist){ maxDist = dist; bestMove = m;}
+                            });
+                        } else {
+                            let minDist = Infinity;
+                             possibleMoves.forEach(m => {
+                                let dist = Math.abs(gx+m.x - pacman_player.x) + Math.abs(gy+m.y - pacman_player.y);
+                                if(dist < minDist){ minDist = dist; bestMove = m;}
+                            });
+                        }
+                    } else if (possibleMoves.find(m => m.x === g.dx && m.y === g.dy)) {
+                         bestMove = {x:g.dx, y:g.dy};
+                    } else {
+                         g.lastTurnX = g.x;
+                         g.lastTurnY = g.y;
+                         bestMove = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
+                    }
+
+                    if(bestMove){
+                        g.dx = bestMove.x; g.dy = bestMove.y;
+                        g.x += g.dx; g.y += g.dy;
+                    }
+                }
+
+                if (g.x === pacman_player.x && g.y === pacman_player.y) {
+                    if (g.frightened) {
+                        pacman_score += 200;
+                        g.x = pacman_map[0].indexOf(empty_char) !== -1 ? pacman_map[0].indexOf(empty_char) : 1;
+                        g.y = pacman_map.findIndex(row=>row.includes(empty_char));
+                        g.frightened = false;
+                    } else {
+                        pacman_lives--;
+                        if (pacman_lives <= 0) { gameOverPacman(false, false); return; }
+                        let pPosFound = 0;
+                        for (let r_reset = 0; r_reset < pacman_map.length; r_reset++) {
+                           const c_resetP = pacman_map[r_reset].indexOf(empty_char, Math.floor(pacman_map[r_reset].length/2));
+                           if (c_resetP !== -1 && pPosFound <1) {pacman_player.x = c_resetP; pacman_player.y = r_reset; pacman_player.dx=0; pacman_player.dy=0; pPosFound++; break;}
+                        }
+                         if(pPosFound === 0) { pacman_player.x = 1; pacman_player.y=1; pacman_player.dx=0; pacman_player.dy=0;}
+
+                         pacman_ghosts.forEach((ghost_reset, idx) => {
+                            ghost_reset.x = (idx*3 + 5) % (pacman_map[0].length-2) + 1;
+                            ghost_reset.y = Math.floor(pacman_map.length /2) + (idx%2 === 0? 1 : -1) ;
+                            if (!canMovePacman(ghost_reset.x, ghost_reset.y)){
+                                ghost_reset.x=1; ghost_reset.y=pacman_map.length - 2;
+                            }
+                            ghost_reset.frightened = false;
+                            ghost_reset.dx=0; ghost_reset.dy=0;
+                         });
+                        pacman_powerTimer = 0;
+                        return;
+                    }
+                }
+            });
+
+            if (pacman_dots <= 0) {
+                gameOverPacman(false, true);
+            }
+        }
+
+        function gameLoopPacman() {
+            if (activeGame !== 'pacman') { if(gameLoopIntervalId) clearInterval(gameLoopIntervalId); gameLoopIntervalId = null; return; }
+            updatePacmanState();
+            if (activeGame === 'pacman') drawPacmanBoard();
+        }
+
+        function handlePacmanInput(e) {
+            if (activeGame !== 'pacman') return;
+            e.preventDefault();
+            const key = e.key.toUpperCase();
+            if (key === 'ARROWLEFT' || key === 'A') { pacman_player.dx = -1; pacman_player.dy = 0; }
+            else if (key === 'ARROWRIGHT' || key === 'D') { pacman_player.dx = 1; pacman_player.dy = 0; }
+            else if (key === 'ARROWUP' || key === 'W') { pacman_player.dx = 0; pacman_player.dy = -1; }
+            else if (key === 'ARROWDOWN' || key === 'S') { pacman_player.dx = 0; pacman_player.dy = 1; }
+            else if (key === 'ESCAPE') gameOverPacman(true);
+        }
+
+        function startGamePacman() {
+            typeLine("Starting Pac-Man... Arrows or WASD to move. ESC to quit.", 15).then(() => {
+                if (activeGame !== 'pacman') return;
+                initPacmanGameVars(); drawPacmanBoard();
+                if (gameLoopIntervalId) clearInterval(gameLoopIntervalId);
+                gameLoopIntervalId = setInterval(gameLoopPacman, pacman_gameSpeed);
+            });
+        }
+
+        function gameOverPacman(manualExit = false, didWin = false) {
+            if (activeGame !== 'pacman') return;
+            let message = "GAME OVER!";
+            if (manualExit) message = "Game exited.";
+            else if (didWin) message = "YOU WIN!";
+
+            drawPacmanBoard();
+            concludeGame('pacman', message, `Final Score: ${pacman_score}`);
+        }
+
+
+        function initTerminal() {
+            typeLine("Kamil2137 Emulator v1.0", 20)
+            .then(() => typeLine("Type 'help' for available commands.", 20))
+            .then(() => {
+                outputDiv.appendChild(document.createTextNode('\n'));
+                scrollToBottom();
+            });
+            document.addEventListener('keydown', handleKeyDown);
+        }
+        initTerminal();
+    </script>
+</body>
+</html>
